@@ -1,84 +1,102 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
-type User = {
+interface User {
   id: string;
-  username: string;
-  role: "admin" | "user";
-};
+  name: string;
+  email: string;
+}
 
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
-
-// Test credentials
-const TEST_CREDENTIALS = {
-  admin: { id: "admin-123", username: "admin", password: "admin123", role: "admin" as const },
-  user: { id: "user-456", username: "user", password: "user123", role: "user" as const },
-};
-
-export default function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
-  const login = async (username: string, password: string) => {
-    console.log("Login attempt:", username);
-    
-    // Check admin credentials
-    if (username === TEST_CREDENTIALS.admin.username && 
-        password === TEST_CREDENTIALS.admin.password) {
-      const adminUser = {
-        id: TEST_CREDENTIALS.admin.id,
-        username: TEST_CREDENTIALS.admin.username,
-        role: TEST_CREDENTIALS.admin.role
-      };
-      setUser(adminUser);
+  // In a real app, this would communicate with a backend
+  const login = async (email: string, password: string) => {
+    try {
+      // Simulate API call
+      console.log("Logging in with:", email, password);
+      
+      // For demo purposes, any non-empty email/password works
+      if (email && password) {
+        setUser({
+          id: "user-1",
+          name: email.split("@")[0],
+          email,
+        });
+        
+        toast({
+          title: "Login successful!",
+          description: "Welcome back to our store.",
+        });
+        
+        return true;
+      }
+      
       toast({
-        title: "Login successful",
-        description: "Welcome, Admin!",
+        title: "Login failed",
+        description: "Invalid email or password",
+        variant: "destructive",
       });
-      navigate("/admin");
-      return;
-    }
-    
-    // Check user credentials
-    if (username === TEST_CREDENTIALS.user.username && 
-        password === TEST_CREDENTIALS.user.password) {
-      const regularUser = {
-        id: TEST_CREDENTIALS.user.id,
-        username: TEST_CREDENTIALS.user.username,
-        role: TEST_CREDENTIALS.user.role
-      };
-      setUser(regularUser);
+      
+      return false;
+    } catch (error) {
+      console.error("Login error:", error);
       toast({
-        title: "Login successful",
-        description: "Welcome back!",
+        title: "Login failed",
+        description: "Something went wrong",
+        variant: "destructive",
       });
-      navigate("/user");
-      return;
+      return false;
     }
-    
-    // Invalid credentials
-    toast({
-      title: "Login failed",
-      description: "Invalid username or password.",
-      variant: "destructive",
-    });
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      // Simulate API call
+      console.log("Registering:", name, email, password);
+      
+      if (name && email && password) {
+        setUser({
+          id: "user-" + Date.now(),
+          name,
+          email,
+        });
+        
+        toast({
+          title: "Registration successful!",
+          description: "Your account has been created.",
+        });
+        
+        return true;
+      }
+      
+      toast({
+        title: "Registration failed",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      
+      return false;
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration failed",
+        description: "Something went wrong",
+        variant: "destructive",
+      });
+      return false;
+    }
   };
 
   const logout = () => {
@@ -87,12 +105,25 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       title: "Logged out",
       description: "You have been logged out successfully.",
     });
-    navigate("/");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
